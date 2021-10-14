@@ -10,6 +10,9 @@ public class TerrainGeneraator : MonoBehaviour
     public float scale = 1.0f;
     [Range(0, 10)]
     public int subdivisions = 3;
+    [Range(0.0f, 1.0f)]
+    public float heightRatio = 0.1f;
+    private int size;
 
     private Mesh mesh;
     private Vector3[] vertices;
@@ -19,7 +22,9 @@ public class TerrainGeneraator : MonoBehaviour
     void Awake()
     {
         mesh = new Mesh();
+        size = (int)Mathf.Round(Mathf.Pow(2.0f, subdivisions));
         GetComponent<MeshFilter>().sharedMesh = mesh;
+        GetComponent<MeshCollider>().sharedMesh = mesh;
         GenerateMesh();
     }
     // Start is called before the first frame update
@@ -32,10 +37,14 @@ public class TerrainGeneraator : MonoBehaviour
     void Update()
     {
         GenerateMesh();
+        ApplyNoise();
+        ApplyMesh();
+        
+        GetComponent<MeshCollider>().sharedMesh = mesh;
     }
 
     private void GenerateMesh() {
-        int size = (int)Mathf.Round(Mathf.Pow(2.0f, subdivisions));
+        size = (int)Mathf.Round(Mathf.Pow(2.0f, subdivisions));
         int count = (size + 1) * (size + 1);
         vertices = new Vector3[count];
         uvs = new Vector2[count];
@@ -46,11 +55,10 @@ public class TerrainGeneraator : MonoBehaviour
             for (int z = 0; z <= size; z++)
             {
                 Vector3 vertex = new Vector3(-scale/2 + x * scale/size, 0.0f, -scale/2 +  z * scale/size);
-                Vector2 uv = new Vector2(x / size, z / size);
+                Vector2 uv = new Vector2(1.0f * x / size, 1.0f * z / size);
                 int idx = x + z * (size + 1);
                 vertices[idx] = vertex;
                 uvs[idx] = uv;
-
             }
         }
 
@@ -73,12 +81,14 @@ public class TerrainGeneraator : MonoBehaviour
                 triangles[triIdx + 5] = vertBottomLeft;
             }
         }
+    }
 
-        
+    private void ApplyMesh() {
         mesh.Clear();
 
         mesh.vertices = vertices;
         mesh.triangles = triangles;
+        mesh.uv = uvs;
         //mesh.colors = colors;
 
         mesh.RecalculateNormals();
@@ -91,7 +101,47 @@ public class TerrainGeneraator : MonoBehaviour
 
         for (int i = 0; i < vertices.Length; i++) {
             Gizmos.color = Color.black;
-            Gizmos.DrawSphere(vertices[i], .1f);   
+            //Gizmos.DrawSphere(vertices[i], .1f);   
+        }
+    }
+
+    private float Noise(float x, float y) {
+        float h = 0.0f;
+
+        // Water
+        for (int i = 1; i < 10; i++)
+        {
+            h += 1.0f/i * Mathf.PerlinNoise(x * i + 0.2f*(5-i)*Time.time, y * i - 0.2f*(5-i)*Time.time);
+        }
+
+
+        //h = Mathf.Sin(2 * x * Mathf.PI + Time.time * 2) * Mathf.Cos(2 * y * Mathf.PI);
+        return h;
+        //return Mathf.Sin(x * z * Mathf.PI + Time.time * 2.0f) * 0.5f + 0.5f;
+    }
+
+    private void ApplyNoise() {
+        float yMin = 1000000000;
+        float yMax = 0;
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            Vector3 vertex = vertices[i];
+            Vector2 uv = uvs[i];
+            float y = Noise(uv.x, uv.y);
+            if (y < yMin) {
+                yMin = y;
+            }
+            if (y > yMax) {
+                yMax = y;
+            }
+
+            vertices[i] = new Vector3(vertex.x, y * heightRatio * scale, vertex.z);
+        }
+
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            float y0 = vertices[i].y;
+            //vertices[i].y = (y0 - (yMin + yMax)/2);
         }
     }
 }
