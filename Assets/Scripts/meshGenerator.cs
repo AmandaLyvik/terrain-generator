@@ -19,8 +19,8 @@ public class meshGenerator : MonoBehaviour
 
     float maxTerrainHeight;
 
-    //public float[] amplitudes;
-    //public float[] frequencies;
+    public float[] amplitudes;
+    public float[] frequencies;
 
 
     // Start is called before the first frame update
@@ -45,8 +45,8 @@ public class meshGenerator : MonoBehaviour
             for (int x = 0; x <= xSize; x++)
             {
                 // TODO: add multiple layers of noice. Check out 'octaves'
-                float y = Mathf.PerlinNoise(x * .3f, z * .3f) * 2f;
-                //float y = noiseGenerator(x, z);
+                //float y = Mathf.PerlinNoise(x * .3f, z * .3f) * 2f;
+                float y = noiseGenerator(x, z);
                 vertices[i] = new Vector3(x, y, z);
                 
                 if (y > maxTerrainHeight)
@@ -116,12 +116,12 @@ public class meshGenerator : MonoBehaviour
         }
     }
 
-    //private float noiseGenerator(int x, int z) {
-    //    float y = 0;
-    //    for (int i = 0; i < frequencies.Length; i++)
-    //    {
-    //        y += amplitudes[i] * Mathf.PerlinNoise(frequencies[i] * x, frequencies[i] * z); 
-    //    }
-    //    return y;
-    //}
+    private float noiseGenerator(int x, int z) {
+        float y = 0;
+        for (int i = 0; i < frequencies.Length; i++)
+        {
+            y += amplitudes[i] * Mathf.PerlinNoise(frequencies[i] * x, frequencies[i] * z); 
+        }
+        return y;
+    }
 }
